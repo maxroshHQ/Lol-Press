@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meme Generator - LOL Press</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #50207A;
+            --secondary: #D6B9FC;
+            --bg-dark: #0a0a0a;
+            --text-light: #ffffff;
+            --text-muted: #a0a0a0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Loader */
+        .loader-wrapper {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+
+        .loader-wrapper.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader {
+            position: relative;
+            width: 64px;
+            height: 64px;
+        }
+
+        .loader:after {
+            content: '';
+            background: var(--secondary);
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            transform-origin: -16px -32px;
+            animation: rotate 1s linear infinite;
+        }
+
+        @keyframes rotate {
+            0%, 100% {
+                transform: rotate(-45deg) translate(-50%, -50%);
+            }
+            50% {
+                transform: rotate(-245deg) translate(-50%, -50%);
+            }
+        }
+
+        /* Main Content */
+        .main-content {
+            opacity: 0;
+            transition: opacity 0.8s ease-in;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content.visible {
+            opacity: 1;
+        }
+
+        /* Navbar */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 1.5rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            transition: background 0.3s;
+        }
+
+        nav.scrolled {
+            background: rgba(10, 10, 10, 0.95);
+            box-shadow: 0 4px 20px rgba(80, 32, 122, 0.2);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo img {
+            height: 45px;
+            width: auto;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links a:hover {
+            color: var(--secondary);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Mobile Menu */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .nav-links.active {
+            display: flex;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 10, 0.98);
+            flex-direction: column;
+            padding: 2rem;
+            gap: 1.5rem;
+            box-shadow: 0 4px 20px rgba(80, 32, 122, 0.3);
+        }
+
+        /* Generator Section */
+        .generator {
+            padding: 8rem 5% 4rem;
+            flex: 1;
+            background: radial-gradient(ellipse at top, rgba(80, 32, 122, 0.15), transparent 50%);
+        }
+
+        .generator-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-title {
+            font-size: 3rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--text-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .controls {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            border: 1px solid rgba(214, 185, 252, 0.2);
+            box-shadow: 0 10px 40px rgba(80, 32, 122, 0.3);
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--secondary);
+            font-size: 0.95rem;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--primary), #7b3db8);
+            border: none;
+            border-radius: 10px;
+            color: var(--text-light);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(80, 32, 122, 0.5);
+            width: 100%;
+        }
+
+        .file-input-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(214, 185, 252, 0.6);
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(10, 10, 10, 0.6);
+            border: 2px solid rgba(214, 185, 252, 0.3);
+            border-radius: 10px;
+            color: var(--text-light);
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 20px rgba(214, 185, 252, 0.3);
+        }
+
+        .text-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .download-btn {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--primary), #7b3db8);
+            border: none;
+            border-radius: 10px;
+            color: var(--text-light);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(80, 32, 122, 0.5);
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(214, 185, 252, 0.7);
+        }
+
+        .download-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+
+        #memeCanvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(80, 32, 122, 0.4);
+            border: 2px solid rgba(214, 185, 252, 0.2);
+            background: rgba(20, 20, 20, 0.8);
+        }
+
+        /* Footer */
+        footer {
+            background: rgba(10, 10, 10, 0.95);
+            padding: 2rem 5%;
+            text-align: center;
+            border-top: 1px solid rgba(214, 185, 252, 0.1);
+            margin-top: auto;
+        }
+
+        .footer-text {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .footer-text:hover {
+            color: var(--secondary);
+            text-shadow: 0 0 10px rgba(214, 185, 252, 0.5);
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .page-title {
+                font-size: 2.5rem;
+            }
+
+            .controls {
+                padding: 2rem;
+            }
+
+            nav {
+                padding: 1rem 5%;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .generator {
+                padding: 6rem 5% 2rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .page-subtitle {
+                font-size: 1rem;
+            }
+
+            .controls {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loader -->
+    <div class="loader-wrapper" id="loader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Navbar -->
+        <nav id="navbar">
+            <a href="/index.html" class="logo">
+                <img src="/Img/logo.png" alt="LOL Press">
+            </a>
+            <div class="nav-links">
+                <a href="https://github.com" target="_blank">
+                    <svg class="nav-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+                    </svg>
+                    GITHUB
+                </a>
+                <a href="#donate">
+                    <svg class="nav-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                    DONATE
+                </a>
+            </div>
+            <button class="mobile-menu-btn">☰</button>
+        </nav>
+
+        <!-- Generator Section -->
+        <section class="generator">
+            <div class="generator-container">
+                <h1 class="page-title">Meme Generator</h1>
+                <p class="page-subtitle">Upload your image, add text, and press download!</p>
+
+                <!-- Controls -->
+                <div class="controls">
+                    <div class="control-group">
+                        <label class="control-label">Upload Image</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="imageUpload" accept="image/*">
+                            <div class="file-input-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+                                </svg>
+                                <span id="fileName">Choose Image</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label" for="topText">Top Text</label>
+                        <input type="text" id="topText" class="text-input" placeholder="Enter top text">
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label" for="bottomText">Bottom Text</label>
+                        <input type="text" id="bottomText" class="text-input" placeholder="Enter bottom text">
+                    </div>
+
+                    <button id="downloadBtn" class="download-btn" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                            <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
+                        </svg>
+                        Download Meme
+                    </button>
+                </div>
+
+                <!-- Canvas -->
+                <div class="canvas-wrapper">
+                    <canvas id="memeCanvas" width="800" height="600"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p class="footer-text" style="cursor:pointer;" 
+   onclick="window.open('https://github.com','_blank')">Built with love by V0!D</p>
+        </footer>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('memeCanvas');
+        const ctx = canvas.getContext('2d');
+        const imageUpload = document.getElementById('imageUpload');
+        const topText = document.getElementById('topText');
+        const bottomText = document.getElementById('bottomText');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const fileName = document.getElementById('fileName');
+
+        let uploadedImage = null;
+
+        // Loader functionality
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('mainContent').classList.add('visible');
+            }, 1500);
+        });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Mobile menu toggle
+        setTimeout(() => {
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const navLinks = document.querySelector('.nav-links');
+
+            if (mobileMenuBtn && navLinks) {
+                mobileMenuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    navLinks.classList.toggle('active');
+                    mobileMenuBtn.textContent = navLinks.classList.contains('active') ? '✕' : '☰';
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('nav')) {
+                        navLinks.classList.remove('active');
+                        mobileMenuBtn.textContent = '☰';
+                    }
+                });
+            }
+        }, 100);
+
+        // Initialize canvas with placeholder
+        function initCanvas() {
+            ctx.fillStyle = 'rgba(20, 20, 20, 0.9)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = 'rgba(214, 185, 252, 0.2)';
+            ctx.font = '24px Poppins';
+            ctx.textAlign = 'center';
+            ctx.fillText('Upload an image to get started', canvas.width / 2, canvas.height / 2);
+        }
+
+        initCanvas();
+
+        // Handle image upload
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                fileName.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        uploadedImage = img;
+                        downloadBtn.disabled = false;
+                        drawMeme();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle text input
+        topText.addEventListener('input', drawMeme);
+        bottomText.addEventListener('input', drawMeme);
+
+        // Draw meme on canvas
+        function drawMeme() {
+            if (!uploadedImage) return;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Calculate image dimensions to fit canvas
+            const imgAspect = uploadedImage.width / uploadedImage.height;
+            const canvasAspect = canvas.width / canvas.height;
+            let drawWidth, drawHeight, offsetX, offsetY;
+
+            if (imgAspect > canvasAspect) {
+                drawWidth = canvas.width;
+                drawHeight = canvas.width / imgAspect;
+                offsetX = 0;
+                offsetY = (canvas.height - drawHeight) / 2;
+            } else {
+                drawHeight = canvas.height;
+                drawWidth = canvas.height * imgAspect;
+                offsetX = (canvas.width - drawWidth) / 2;
+                offsetY = 0;
+            }
+
+            // Draw background
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw image
+            ctx.drawImage(uploadedImage, offsetX, offsetY, drawWidth, drawHeight);
+
+            // Text styling
+            const fontSize = canvas.width / 12;
+            ctx.font = `bold ${fontSize}px Impact, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = fontSize / 15;
+            ctx.fillStyle = 'white';
+
+            // Draw top text
+            if (topText.value) {
+                const topY = 20;
+                ctx.strokeText(topText.value.toUpperCase(), canvas.width / 2, topY);
+                ctx.fillText(topText.value.toUpperCase(), canvas.width / 2, topY);
+            }
+
+            // Draw bottom text
+            if (bottomText.value) {
+                const bottomY = canvas.height - fontSize - 20;
+                ctx.strokeText(bottomText.value.toUpperCase(), canvas.width / 2, bottomY);
+                ctx.fillText(bottomText.value.toUpperCase(), canvas.width / 2, bottomY);
+            }
+
+            // Draw watermark
+            drawWatermark();
+        }
+
+        // Draw watermark
+        function drawWatermark() {
+            const watermarkSize = canvas.width / 40;
+            ctx.font = `600 ${watermarkSize}px Poppins`;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.fillStyle = 'rgba(214, 185, 252, 0.6)';
+            ctx.fillText('Lol Press', canvas.width - 15, canvas.height - 10);
+        }
+
+        // Download meme
+        downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'lolpress-meme.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    </script>
+</body>
+</html>
