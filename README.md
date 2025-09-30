@@ -29,8 +29,8 @@ Upload your image, add top and bottom text, and download your meme.
 
 ```bash
 ├── index.html       # Landing page with hero + cards + nav
-├── lolpress.html    # Meme generator page
-├── Img/             # Logo + placeholder images
+├── meme   # Meme generator Folder
+├── Img/             # Logo and images
 ├── README.md        # Project documentation
 ```
 
@@ -41,7 +41,7 @@ Upload your image, add top and bottom text, and download your meme.
 1. Clone the repo:
 
    ```bash
-   git clone https://github.com/your-username/lol-press.git
+   git clone https://github.com/maxroshHQ/lol-press.git
    cd lol-press
    ```
 2. Open `index.html` in your browser (no server needed).
