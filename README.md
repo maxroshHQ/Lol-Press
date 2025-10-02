@@ -1,15 +1,16 @@
 # LOL Press 
 
 **LOL Press** is a lightweight, web-based **meme generator** built with pure **HTML, CSS, and JavaScript**.
-Upload your image, add top and bottom text, and download your meme.
+Upload your image, add text, move text, and download your meme.
 
 ---
 
 ## 🚀 Features
 
 * ✨ Upload any image directly from your device
-* 📝 Add **Top Text** and **Bottom Text** (classic meme style)
+* 📝 Add **Top Text** and **Bottom Text** (classic meme style) 
 * 🎨 Automatic styling with white Impact font + black stroke
+* 🎛️ Move Text
 * 💧 Transparent **Lol Press watermark** at bottom-right
 * 💾 One-click **Download Meme** as PNG
 * 📱 Responsive, clean UI (works on desktop + mobile)
