@@ -324,6 +324,11 @@
             box-shadow: 0 10px 40px rgba(80, 32, 122, 0.4);
             border: 2px solid rgba(214, 185, 252, 0.2);
             background: rgba(20, 20, 20, 0.8);
+            cursor: grab;
+        }
+
+        #memeCanvas.dragging {
+            cursor: grabbing;
         }
 
         /* Footer */
@@ -398,8 +403,8 @@
     <div class="main-content" id="mainContent">
         <!-- Navbar -->
         <nav id="navbar">
-            <a href="https://lol-press.vercel.app/" class="logo">
-                <img src="/Img/logo.png" alt="LOL Press">
+            <a href="/index.html" class="logo" style="text-decoration: none;">
+                <img src="/Img/logo.png" alt="LOL Press">2.0
             </a>
             <div class="nav-links">
                 <a href="https://github.com/maxroshHQ" target="_blank">
@@ -422,7 +427,7 @@
         <section class="generator">
             <div class="generator-container">
                 <h1 class="page-title">Meme Generator</h1>
-                <p class="page-subtitle">Upload your image, add text, and press download!</p>
+                <p class="page-subtitle">Upload your image, add text, move text and download!</p>
 
                 <!-- Controls -->
                 <div class="controls">
@@ -447,6 +452,11 @@
                     <div class="control-group">
                         <label class="control-label" for="bottomText">Bottom Text</label>
                         <input type="text" id="bottomText" class="text-input" placeholder="Enter bottom text">
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label" for="fontSize">Font Size: <span id="fontSizeValue">40px</span></label>
+                        <input type="range" id="fontSize" min="10" max="100" step="2" value="40" class="text-input" style="padding: 0.5rem; cursor: pointer;">
                     </div>
 
                     <button id="downloadBtn" class="download-btn" disabled>
@@ -479,8 +489,20 @@
         const bottomText = document.getElementById('bottomText');
         const downloadBtn = document.getElementById('downloadBtn');
         const fileName = document.getElementById('fileName');
+        const fontSizeSlider = document.getElementById('fontSize');
+        const fontSizeValue = document.getElementById('fontSizeValue');
 
         let uploadedImage = null;
+        let customFontSize = 40;
+        
+        // Text position state
+        let textPositions = {
+            top: { x: 0, y: 20, isDragging: false },
+            bottom: { x: 0, y: 0, isDragging: false }
+        };
+        
+        let draggedText = null;
+        let dragOffset = { x: 0, y: 0 };
 
         // Loader functionality
         window.addEventListener('load', () => {
@@ -534,6 +556,13 @@
 
         initCanvas();
 
+        // Handle font size slider
+        fontSizeSlider.addEventListener('input', (e) => {
+            customFontSize = parseInt(e.target.value);
+            fontSizeValue.textContent = customFontSize + 'px';
+            drawMeme();
+        });
+
         // Handle image upload
         imageUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -545,6 +574,11 @@
                     img.onload = () => {
                         uploadedImage = img;
                         downloadBtn.disabled = false;
+                        // Reset text positions
+                        textPositions.top.x = canvas.width / 2;
+                        textPositions.top.y = 20;
+                        textPositions.bottom.x = canvas.width / 2;
+                        textPositions.bottom.y = canvas.height - customFontSize - 20;
                         drawMeme();
                     };
                     img.src = event.target.result;
@@ -556,6 +590,105 @@
         // Handle text input
         topText.addEventListener('input', drawMeme);
         bottomText.addEventListener('input', drawMeme);
+
+        // Get mouse/touch position relative to canvas
+        function getCanvasCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        // Check if click is on text
+        function getClickedText(x, y) {
+            if (!uploadedImage) return null;
+            
+            ctx.font = `bold ${customFontSize}px Impact, sans-serif`;
+            ctx.textAlign = 'center';
+            
+            // Check top text
+            if (topText.value) {
+                const topMetrics = ctx.measureText(topText.value.toUpperCase());
+                const topWidth = topMetrics.width;
+                const topHeight = customFontSize;
+                const topX = textPositions.top.x;
+                const topY = textPositions.top.y;
+                
+                if (x >= topX - topWidth / 2 && x <= topX + topWidth / 2 &&
+                    y >= topY && y <= topY + topHeight) {
+                    return 'top';
+                }
+            }
+            
+            // Check bottom text
+            if (bottomText.value) {
+                const bottomMetrics = ctx.measureText(bottomText.value.toUpperCase());
+                const bottomWidth = bottomMetrics.width;
+                const bottomHeight = customFontSize;
+                const bottomX = textPositions.bottom.x;
+                const bottomY = textPositions.bottom.y;
+                
+                if (x >= bottomX - bottomWidth / 2 && x <= bottomX + bottomWidth / 2 &&
+                    y >= bottomY && y <= bottomY + bottomHeight) {
+                    return 'bottom';
+                }
+            }
+            
+            return null;
+        }
+
+        // Mouse/Touch down
+        function handlePointerDown(e) {
+            e.preventDefault();
+            const coords = getCanvasCoordinates(e);
+            const clicked = getClickedText(coords.x, coords.y);
+            
+            if (clicked) {
+                draggedText = clicked;
+                canvas.classList.add('dragging');
+                dragOffset.x = coords.x - textPositions[clicked].x;
+                dragOffset.y = coords.y - textPositions[clicked].y;
+            }
+        }
+
+        // Mouse/Touch move
+        function handlePointerMove(e) {
+            if (!draggedText) return;
+            e.preventDefault();
+            
+            const coords = getCanvasCoordinates(e);
+            textPositions[draggedText].x = coords.x - dragOffset.x;
+            textPositions[draggedText].y = coords.y - dragOffset.y;
+            
+            drawMeme();
+        }
+
+        // Mouse/Touch up
+        function handlePointerUp(e) {
+            if (draggedText) {
+                e.preventDefault();
+                draggedText = null;
+                canvas.classList.remove('dragging');
+            }
+        }
+
+        // Add event listeners for dragging
+        canvas.addEventListener('mousedown', handlePointerDown);
+        canvas.addEventListener('mousemove', handlePointerMove);
+        canvas.addEventListener('mouseup', handlePointerUp);
+        canvas.addEventListener('mouseleave', handlePointerUp);
+
+        // Touch events
+        canvas.addEventListener('touchstart', handlePointerDown);
+        canvas.addEventListener('touchmove', handlePointerMove);
+        canvas.addEventListener('touchend', handlePointerUp);
 
         // Draw meme on canvas
         function drawMeme() {
@@ -589,26 +722,23 @@
             ctx.drawImage(uploadedImage, offsetX, offsetY, drawWidth, drawHeight);
 
             // Text styling
-            const fontSize = canvas.width / 12;
-            ctx.font = `bold ${fontSize}px Impact, sans-serif`;
+            ctx.font = `bold ${customFontSize}px Impact, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
             ctx.strokeStyle = 'black';
-            ctx.lineWidth = fontSize / 15;
+            ctx.lineWidth = customFontSize / 10;
             ctx.fillStyle = 'white';
 
             // Draw top text
             if (topText.value) {
-                const topY = 20;
-                ctx.strokeText(topText.value.toUpperCase(), canvas.width / 2, topY);
-                ctx.fillText(topText.value.toUpperCase(), canvas.width / 2, topY);
+                ctx.strokeText(topText.value.toUpperCase(), textPositions.top.x, textPositions.top.y);
+                ctx.fillText(topText.value.toUpperCase(), textPositions.top.x, textPositions.top.y);
             }
 
             // Draw bottom text
             if (bottomText.value) {
-                const bottomY = canvas.height - fontSize - 20;
-                ctx.strokeText(bottomText.value.toUpperCase(), canvas.width / 2, bottomY);
-                ctx.fillText(bottomText.value.toUpperCase(), canvas.width / 2, bottomY);
+                ctx.strokeText(bottomText.value.toUpperCase(), textPositions.bottom.x, textPositions.bottom.y);
+                ctx.fillText(bottomText.value.toUpperCase(), textPositions.bottom.x, textPositions.bottom.y);
             }
 
             // Draw watermark
@@ -634,5 +764,4 @@
         });
     </script>
 </body>
-
 </html>
